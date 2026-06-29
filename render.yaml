@@ -9,5 +9,5 @@ services:
         value: 10000
       - key: FLASK_DEBUG
         value: "false"
-      - key: FIREBASE_CREDENTIALS
+      - key: FIREBASE_SERVICE_ACCOUNT_KEY
         sync: false # Requires manual entry in Render dashboard for security

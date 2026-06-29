@@ -8,13 +8,13 @@ cred_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'serviceAcc
 try:
     if not firebase_admin._apps:
         # Check if environment variable contains Firebase JSON
-        firebase_json = os.environ.get('FIREBASE_CREDENTIALS')
+        firebase_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY') or os.environ.get('FIREBASE_CREDENTIALS')
         if firebase_json:
             import json
             cred_dict = json.loads(firebase_json)
             cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
-            print("Firebase Admin initialized via FIREBASE_CREDENTIALS environment variable.")
+            print("Firebase Admin initialized via FIREBASE_SERVICE_ACCOUNT_KEY environment variable.")
         elif os.path.exists(cred_path):
             cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
