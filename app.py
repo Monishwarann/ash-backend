@@ -23,7 +23,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 app = Flask(__name__)
 CORS(app)
 
-app.config['SECRET_KEY'] = 'pancreatic_risk_secret_key_135'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'pancreatic_risk_secret_key_135')
 
 def verify_token(f):
     @wraps(f)
