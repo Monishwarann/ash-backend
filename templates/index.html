@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Driven Pancreatic Cancer Risk Screening System</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- ChartJS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="glow-orb" id="orb-1"></div>
+    <div class="glow-orb" id="orb-2"></div>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo-area">
+                <i class="fa-solid fa-microchip-aes logo-icon"></i>
+                <div class="title-meta">
+                    <h1>NEO-PANC</h1>
+                    <p>AI-Driven Non-Invasive Multi-Sensor Screening Platform</p>
+                </div>
+            </div>
+            <div class="user-profile">
+                <span id="user-badge"><i class="fa-solid fa-circle-user"></i> Guest Mode</span>
+                <button id="auth-toggle-btn" onclick="openAuthModal()"><i class="fa-solid fa-sign-in-alt"></i> Login</button>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <main class="main-grid">
+            <!-- SIDEBAR: TELEMETRY DATA SOURCE -->
+            <section class="grid-card sidebar-card">
+                <div class="card-header">
+                    <span class="status-dot active" id="source-status-dot"></span>
+                    <h2><i class="fa-solid fa-microchip"></i> Telemetry Source</h2>
+                </div>
+                
+                <div class="source-toggle-container">
+                    <button class="source-tab active" id="btn-src-sim" onclick="setTelemetrySource('simulator')">
+                        <i class="fa-solid fa-flask"></i> Simulator
+                    </button>
+                    <button class="source-tab" id="btn-src-hw" onclick="setTelemetrySource('hardware')">
+                        <i class="fa-solid fa-wifi"></i> ESP32 Hardware
+                    </button>
+                </div>
+
+                <div class="hw-status-container hidden" id="hw-status-box">
+                    <div class="status-indicator">
+                        <span class="status-dot-pulse red" id="hw-status-dot"></span>
+                        <span id="hw-status-text" class="status-text-val">ESP32 Offline</span>
+                    </div>
+                    <span class="last-seen" id="hw-last-seen">Last Transmission: Never</span>
+                </div>
+
+                <p class="section-desc" id="source-description">Simulate physical breath and saliva sensor outputs to transmit real-time telemetry.</p>
+                
+                <div class="sim-sliders" id="sim-sliders-wrapper">
+                    <div class="slider-group">
+                        <label>
+                            <span>MQ135 (Breath VOCs / Amines)</span>
+                            <span class="slider-value" id="val-mq135">35.0 PPM</span>
+                        </label>
+                        <input type="range" id="sim-mq135" min="10" max="350" value="35" oninput="updateSimValues()">
+                    </div>
+
+                    <div class="slider-group">
+                        <label>
+                            <span>MQ3 (Breath Alcohol / VOCs)</span>
+                            <span class="slider-value" id="val-mq3">12.0 PPM</span>
+                        </label>
+                        <input type="range" id="sim-mq3" min="5" max="150" value="12" oninput="updateSimValues()">
+                    </div>
+
+                    <div class="slider-group">
+                        <label>
+                            <span>MQ7 (Breath Carbon Monoxide)</span>
+                            <span class="slider-value" id="val-mq7">5.0 PPM</span>
+                        </label>
+                        <input type="range" id="sim-mq7" min="2" max="100" value="5" oninput="updateSimValues()">
+                    </div>
+
+                    <div class="slider-group">
+                        <label>
+                            <span>Saliva pH Level</span>
+                            <span class="slider-value" id="val-ph">7.00 pH</span>
+                        </label>
+                        <input type="range" id="sim-ph" min="4.0" max="9.0" step="0.05" value="7.0" oninput="updateSimValues()">
+                    </div>
+
+                    <div class="slider-group">
+                        <label>
+                            <span>Saliva Conductivity (EC)</span>
+                            <span class="slider-value" id="val-ec">2.80 mS/cm</span>
+                        </label>
+                        <input type="range" id="sim-ec" min="0.5" max="10.0" step="0.1" value="2.8" oninput="updateSimValues()">
+                    </div>
+                </div>
+
+                <div class="sim-controls" id="sim-controls-wrapper">
+                    <button class="btn btn-primary" onclick="sendTelemetry()"><i class="fa-solid fa-paper-plane"></i> Send ESP32 Telemetry</button>
+                    <div class="auto-feed-toggle">
+                        <input type="checkbox" id="auto-feed" onchange="toggleAutoFeed()">
+                        <label for="auto-feed">Continuous Feed (5s interval)</label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DASHBOARD: LIVE CHANNELS AND PREDICTION SCREEN -->
+            <div class="content-panel">
+                <!-- LIVE SENSOR TELEMETRY CARDS -->
+                <section class="live-status-row">
+                    <div class="sensor-mini-card">
+                        <i class="fa-solid fa-wind sensor-icon voc-color"></i>
+                        <div class="sensor-meta">
+                            <h4>MQ135 VOC</h4>
+                            <span id="live-mq135" class="sensor-read font-lcd">35.0</span> <span class="unit">PPM</span>
+                        </div>
+                    </div>
+                    <div class="sensor-mini-card">
+                        <i class="fa-solid fa-beer-mug-empty sensor-icon alcohol-color"></i>
+                        <div class="sensor-meta">
+                            <h4>MQ3 Alcohol</h4>
+                            <span id="live-mq3" class="sensor-read font-lcd">12.0</span> <span class="unit">PPM</span>
+                        </div>
+                    </div>
+                    <div class="sensor-mini-card">
+                        <i class="fa-solid fa-smog sensor-icon co-color"></i>
+                        <div class="sensor-meta">
+                            <h4>MQ7 CO</h4>
+                            <span id="live-mq7" class="sensor-read font-lcd">5.0</span> <span class="unit">PPM</span>
+                        </div>
+                    </div>
+                    <div class="sensor-mini-card">
+                        <i class="fa-solid fa-droplet sensor-icon ph-color"></i>
+                        <div class="sensor-meta">
+                            <h4>Saliva pH</h4>
+                            <span id="live-ph" class="sensor-read font-lcd">7.00</span> <span class="unit">pH</span>
+                        </div>
+                    </div>
+                    <div class="sensor-mini-card">
+                        <i class="fa-solid fa-bolt sensor-icon ec-color"></i>
+                        <div class="sensor-meta">
+                            <h4>Saliva EC</h4>
+                            <span id="live-ec" class="sensor-read font-lcd">2.80</span> <span class="unit">mS</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="prediction-grid">
+                    <!-- QUESTIONNAIRE SECTION -->
+                    <section class="grid-card main-card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-clipboard-question"></i> Clinical Risk Questionnaire</h2>
+                        </div>
+                        <p class="section-desc">Combine patient demographics and physiological biomarkers for increased accuracy.</p>
+                        
+                        <form id="questionnaire-form" onsubmit="event.preventDefault(); evaluateScreening();">
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label for="p-age">Age</label>
+                                    <input type="number" id="p-age" min="1" max="110" value="45" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="p-bmi">BMI (Body Mass Index)</label>
+                                    <input type="number" id="p-bmi" min="10" max="60" step="0.1" value="23.5" required>
+                                </div>
+                            </div>
+
+                            <div class="checklist-grid">
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-smoking">
+                                    <label for="c-smoking">Smoking History</label>
+                                </div>
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-alcohol">
+                                    <label for="c-alcohol">Alcohol Consumption</label>
+                                </div>
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-diabetes">
+                                    <label for="c-diabetes">Type-2 Diabetes</label>
+                                </div>
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-family">
+                                    <label for="c-family">Family Pancreatic Cancer History</label>
+                                </div>
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-weight">
+                                    <label for="c-weight">Unexplained Weight Loss</label>
+                                </div>
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-pain">
+                                    <label for="c-pain">Abdominal/Back Pain</label>
+                                </div>
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-appetite">
+                                    <label for="c-appetite">Loss of Appetite</label>
+                                </div>
+                                <div class="check-group">
+                                    <input type="checkbox" id="c-jaundice">
+                                    <label for="c-jaundice">Jaundice Signs (Yellow Eyes/Skin)</label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-accent btn-large"><i class="fa-solid fa-wand-magic-sparkles"></i> Evaluate Pancreatic Risk (PCRI)</button>
+                        </form>
+                    </section>
+
+                    <!-- SCREENING RESULTS CARDS -->
+                    <section class="grid-card results-card" id="results-panel">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-heart-pulse"></i> PCRI Risk Index</h2>
+                        </div>
+                        <div class="result-placeholder" id="res-placeholder">
+                            <i class="fa-solid fa-stethoscope pulse-icon"></i>
+                            <p>Complete the clinical survey and transmit telemetry to calculate the risk score.</p>
+                        </div>
+                        
+                        <div class="result-details hidden" id="res-details">
+                            <div class="gauge-wrapper">
+                                <div class="gauge-center">
+                                    <span id="res-score-number" class="score-display font-lcd">0</span>
+                                    <span class="score-lbl">PCRI Score</span>
+                                </div>
+                                <div class="gauge-indicator" id="gauge-indicator"></div>
+                            </div>
+                            
+                            <div class="risk-badge-box">
+                                <span id="res-risk-badge" class="risk-badge risk-low">Low Risk</span>
+                                <span id="res-confidence" class="confidence-badge">AI Confidence: 0%</span>
+                            </div>
+
+                            <div class="pcri-components">
+                                <div class="comp-bar-group">
+                                    <label><span>Breath VOC Channel (30%)</span><span id="lbl-c-breath">0%</span></label>
+                                    <div class="progress-track"><div class="progress-bar" id="bar-c-breath" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="comp-bar-group">
+                                    <label><span>Saliva pH Deviation (20%)</span><span id="lbl-c-ph">0%</span></label>
+                                    <div class="progress-track"><div class="progress-bar" id="bar-c-ph" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="comp-bar-group">
+                                    <label><span>Saliva Conductivity (20%)</span><span id="lbl-c-ec">0%</span></label>
+                                    <div class="progress-track"><div class="progress-bar" id="bar-c-ec" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="comp-bar-group">
+                                    <label><span>AI Core Classifier (30%)</span><span id="lbl-c-ai">0%</span></label>
+                                    <div class="progress-track"><div class="progress-bar" id="bar-c-ai" style="width: 0%;"></div></div>
+                                </div>
+                            </div>
+
+                            <div class="recommendations-box">
+                                <h5><i class="fa-solid fa-user-doctor"></i> Screening Advice</h5>
+                                <p id="res-recommendation">No recommendations generated.</p>
+                            </div>
+                            
+                            <button class="btn btn-secondary btn-full" id="btn-pdf-download" onclick="downloadLatestPDF()"><i class="fa-solid fa-file-pdf"></i> Download PDF Diagnostic Report</button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- REAL-TIME GRAPHS -->
+                <section class="grid-card chart-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> Real-Time Telemetry Logs</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="liveChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- HISTORY LOG TABLE -->
+                <section class="grid-card history-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-clock-rotate-left"></i> Patient Screening Log</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>PCRI Score</th>
+                                    <th>Risk Classification</th>
+                                    <th>AI Model Match</th>
+                                    <th>Report</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-tbody">
+                                <tr>
+                                    <td colspan="5" class="table-empty">No screening logs found. Perform a screening scan above.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- AUTH MODAL -->
+    <div class="modal" id="auth-modal">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3 id="modal-title">Sign In to Dashboard</h3>
+                <button class="close-btn" onclick="closeAuthModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-tabs">
+                    <button class="tab-btn active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+                    <button class="tab-btn" id="tab-register" onclick="switchAuthTab('register')">Register Account</button>
+                </div>
+
+                <form id="auth-form" onsubmit="event.preventDefault(); handleAuth();">
+                    <div class="form-group">
+                        <label for="auth-username">Username</label>
+                        <input type="text" id="auth-username" required>
+                    </div>
+                    <div class="form-group hidden" id="group-email">
+                        <label for="auth-email">Email Address</label>
+                        <input type="email" id="auth-email">
+                    </div>
+                    <div class="form-group">
+                        <label for="auth-password">Password</label>
+                        <input type="password" id="auth-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full mt-4" id="auth-submit-btn">Login</button>
+                    
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Successfully sent telemetry!</div>
+
+        <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <!-- Dashboard JavaScript -->
+    <script src="/static/script.js"></script>
+</body>
+</html>

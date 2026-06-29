@@ -1,0 +1,29 @@
+# Flask & Python local gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+
+# Firebase / Secret Files
+serviceAccountKey.json
+.env
+
+# Databases & Backups
+*.db
+database.db
+database_backup.db
+
+# Generated PDFs
+PCRI_Report_Log_*.pdf
+
+# PyCharm / VS Code settings
+.idea/
+.vscode/
+
+# Local model training artifacts/tests (optional)
+test_api.py
+test_real_model.py
