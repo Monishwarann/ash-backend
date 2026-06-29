@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ash-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: FIREBASE_CREDENTIALS
+        sync: false # Requires manual entry in Render dashboard for security
