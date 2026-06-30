@@ -44,6 +44,7 @@ def verify_token(f):
 # Global variables for model and scaler
 model = None
 scaler = None
+predictions_cache = {}
 
 def load_ai_model():
     global model, scaler
@@ -242,8 +243,15 @@ def predict_risk():
             predicted_risk_class = int(model.predict(scaled_input)[0])
             prob = model.predict_proba(scaled_input)[0]
             
-            ai_confidence = round(float(prob[predicted_risk_class]) * 100, 2)
+            val = float(prob[predicted_risk_class])
+            if val > 1.0:
+                val = val / 100.0
+            val = min(max(val, 0.0), 1.0)
+            ai_confidence = round(val * 100, 2)
+            
             ai_score = (prob[2] + 0.5 * prob[1]) * 100.0
+            if ai_score > 100.0:
+                ai_score = ai_score / 100.0
             
         except Exception as e:
             print(f"AI Prediction error: {e}. Fallback used.")
@@ -284,6 +292,21 @@ def predict_risk():
         ai_confidence=ai_confidence,
         recommendations=rec
     )
+    
+    # Generate fallback ID and save to cache if Firestore failed
+    if not log_id:
+        import uuid
+        log_id = "fb_" + str(uuid.uuid4())[:8]
+        
+    predictions_cache[log_id] = {
+        'id': log_id,
+        'user_id': user_id,
+        'pcri_score': pcri_score,
+        'risk_level': risk_level,
+        'ai_confidence': ai_confidence,
+        'recommendations': rec,
+        'timestamp': datetime.utcnow().isoformat()
+    }
     
     return jsonify({
         'log_id': log_id,
@@ -544,6 +567,8 @@ def get_history(user_id):
 @app.route('/api/generate-pdf/<log_id>', methods=['GET'])
 def generate_pdf(log_id):
     log = ScreeningLog.get_by_id(log_id)
+    if not log:
+        log = predictions_cache.get(log_id)
     if not log: return jsonify({'error': 'No log found'}), 404
     
     user_id = log.get('user_id')
