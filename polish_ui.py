@@ -21,10 +21,6 @@ def update_splash():
     
     content = content.replace("NEO-PANC", "NeoPanc")
     content = content.replace("assets/images/6.jpg", "assets/images/6.jpeg")
-    content = content.replace(
-        "AI-Powered Non-Invasive\\nPancreatic Cancer Screening",
-        "AI-Powered Non-Invasive\\nPancreatic Cancer Screening\\nVersion 1.0"
-    )
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
     print("Splash screen updated")
