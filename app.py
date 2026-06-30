@@ -564,19 +564,23 @@ def get_history(user_id):
     return jsonify(history), 200
 
 # API: Generate and download screening report PDF
-@app.route('/api/generate-pdf/<log_id>', methods=['GET'])
+@app.route('/api/generate-pdf/<log_id>', methods=['GET', 'POST'])
 def generate_pdf(log_id):
-    log = ScreeningLog.get_by_id(log_id)
-    if not log:
-        log = predictions_cache.get(log_id)
+    if request.method == 'POST':
+        log = request.get_json() or {}
+    else:
+        log = ScreeningLog.get_by_id(log_id)
+        if not log:
+            log = predictions_cache.get(log_id)
+            
     if not log: return jsonify({'error': 'No log found'}), 404
     
-    user_id = log.get('user_id')
+    user_id = log.get('user_id') or log.get('userId')
     user = User.get_by_uid(user_id) or {'username': 'Unknown', 'email': 'Unknown'}
     
     # Just grab latest for PDF
-    sensors = SensorReading.get_latest(user_id) or {}
-    survey = Questionnaire.get_latest(user_id) or {}
+    sensors = log.get('sensors') or SensorReading.get_latest(user_id) or {}
+    survey = log.get('survey') or Questionnaire.get_latest(user_id) or {}
     
     # Safe date and time parsing
     log_ts_str = log.get('timestamp') or log.get('predictionTimestamp') or datetime.utcnow().isoformat()
