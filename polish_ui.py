@@ -223,6 +223,26 @@ def update_profile():
         f.write(content)
     print("Profile screen updated")
 
+def update_all_jpg_to_jpeg():
+    files = [
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\dashboard_screen.dart",
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\sensor_screen.dart",
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\prediction_screen.dart",
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\history_screen.dart",
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\profile_screen.dart",
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\about_screen.dart",
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\login_screen.dart",
+        r"c:\Users\kmoni\Downloads\medi-main-main\medi-main-main\flutter_app\lib\screens\splash_screen.dart",
+    ]
+    for path in files:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            content = content.replace("assets/images/6.jpg", "assets/images/6.jpeg")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+            print(f"Updated {os.path.basename(path)} to 6.jpeg")
+
 if __name__ == "__main__":
     update_login()
     update_splash()
@@ -232,4 +252,5 @@ if __name__ == "__main__":
     update_prediction()
     update_history()
     update_profile()
+    update_all_jpg_to_jpeg()
     print("UI Polish complete")
