@@ -578,6 +578,27 @@ def generate_pdf(log_id):
     sensors = SensorReading.get_latest(user_id) or {}
     survey = Questionnaire.get_latest(user_id) or {}
     
+    # Safe date and time parsing
+    log_ts_str = log.get('timestamp') or log.get('predictionTimestamp') or datetime.utcnow().isoformat()
+    log_ts_str = log_ts_str.replace('Z', '')
+    if '.' in log_ts_str:
+        log_ts_str = log_ts_str.split('.')[0]
+    try:
+        log_dt = datetime.fromisoformat(log_ts_str)
+    except Exception:
+        log_dt = datetime.utcnow()
+        
+    timezone_name = log.get('timezone', 'UTC')
+    device_tz_offset = log.get('deviceTimeZoneOffset', '+00:00')
+    
+    # Generated Date & Time (Current Server / Device time)
+    gen_dt = datetime.now()
+    gen_date_str = gen_dt.strftime('%d %B %Y')
+    gen_time_str = gen_dt.strftime('%I:%M:%S %p')
+    
+    # Prediction Date & Time
+    pred_date_str = log_dt.strftime('%d %B %Y')
+    pred_time_str = log_dt.strftime('%I:%M:%S %p')
     
     pdf_filename = f"PCRI_Report_Log_{log.get('id', 'new')}.pdf"
     pdf_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), pdf_filename)
@@ -622,7 +643,7 @@ def generate_pdf(log_id):
     
     # Document Header
     story.append(Paragraph("PANCREATIC CANCER RISK ASSESSMENT REPORT", title_style))
-    story.append(Paragraph(f"AI-driven Multi-Sensor Non-Invasive Screening Device • Generated on: {datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}", subtitle_style))
+    story.append(Paragraph(f"AI-driven Multi-Sensor Early Screening System • Generated on: {gen_date_str} {gen_time_str}", subtitle_style))
     story.append(Spacer(1, 10))
     
     # Patient Info Table
@@ -705,7 +726,26 @@ def generate_pdf(log_id):
     # Recommendations
     story.append(Paragraph("Clinical Recommendations", section_style))
     story.append(Paragraph(log.get('recommendations', ''), body_style))
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 15))
+    
+    # Report Metadata Block
+    story.append(Paragraph("Report Verification & System Timestamps", section_style))
+    meta_data = [
+        [Paragraph("<b>Report Number:</b>", body_style), Paragraph(str(log.get('id') or log_id), body_style),
+         Paragraph("<b>Local Time Zone:</b>", body_style), Paragraph(f"{timezone_name} ({device_tz_offset})", body_style)],
+        [Paragraph("<b>Prediction Date:</b>", body_style), Paragraph(pred_date_str, body_style),
+         Paragraph("<b>Prediction Time:</b>", body_style), Paragraph(pred_time_str, body_style)],
+        [Paragraph("<b>Generated Date:</b>", body_style), Paragraph(gen_date_str, body_style),
+         Paragraph("<b>Generated Time:</b>", body_style), Paragraph(gen_time_str, body_style)]
+    ]
+    meta_table = Table(meta_data, colWidths=[120, 130, 120, 130])
+    meta_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+        ('PADDING', (0, 0), (-1, -1), 5),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F3F4F6'))
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 15))
     
     # Disclaimer
     story.append(Paragraph("<b>Disclaimer:</b> This system is designed as an AI-driven, multi-sensor early non-invasive screening aid for estimating risk metrics. It does not replace a clinical diagnosis. Pancreatic cancer screenings must be confirmed using standard hospital pathology tests (MRI, CT Scan, biopsy, and serum CA19-9 tests) under a physician's guidance.", ParagraphStyle('Disc', parent=body_style, fontSize=8, textColor=colors.HexColor('#4B5563'))))
